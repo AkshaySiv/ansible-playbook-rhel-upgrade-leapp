@@ -1,0 +1,10 @@
+---
+- name: Perform system preupgrade
+  hosts: all
+  gather_facts: no
+  become: yes
+  roles:
+    - { role: preupgrade, tags: preupgrade }
+    - { role: upgrade, tags: upgrade }
+    - { role: postupgrade, tags: postupgrade }
+    - { role: patch, tags: patch }

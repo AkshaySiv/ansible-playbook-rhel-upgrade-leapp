@@ -1,0 +1,8 @@
+---
+- name: Clean YUM cache
+  command: yum clean all
+
+- name: Restart Magneto service
+  ansible.builtin.systemd:
+    name: magneto
+    state: restarted

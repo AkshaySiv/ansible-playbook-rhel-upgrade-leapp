@@ -1,0 +1,65 @@
+---
+# tasks/main.yml for preupgrade role
+- name: Create YUM repository file
+  template:
+    src: templates/local.repo.j2
+    dest: /etc/yum.repos.d/local.repo
+
+- name: Check if Leapp is installed
+  ansible.builtin.command:
+    cmd: which leapp
+  register: leapp_check
+  ignore_errors: yes
+
+- name: Output result of Leapp check
+  debug:
+    msg: "{{ 'Leapp is installed' if leapp_check.rc == 0 else 'Leapp is NOT installed' }}"
+
+- name: Modify SSH config to uncomment PermitRootLogin
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#PermitRootLogin'
+    line: 'PermitRootLogin yes'
+    state: present
+    backup: yes
+  register: ssh_config_change
+  notify: Restart SSHD service
+
+- name: Run Leapp preupgrade if Leapp is installed
+  ansible.builtin.command:
+    cmd: leapp preupgrade --no-rhsm --enablerepo {{ repo_base_os }} --enablerepo {{ repo_app_stream }}
+  when: leapp_check.rc == 0
+  ignore_errors: yes
+
+- name: Run Leapp answer 
+  ansible.builtin.command:
+    cmd: leapp answer --section remove_pam_pkcs11_module_check.confirm=True
+  register: leapp_answer
+
+- name: Run Leapp preupgrade again after Leapp Answer file is modified
+  ansible.builtin.command:
+    cmd: leapp preupgrade --no-rhsm --enablerepo {{ repo_base_os }} --enablerepo {{ repo_app_stream }}
+  when: leapp_check.rc == 0
+  register: preupgrade_result
+  ignore_errors: yes
+
+- name: Check preupgrade result
+  debug:
+    msg: "Leapp preupgrade completed successfully."
+  when: preupgrade_result.rc == 0
+
+- name: Extract report summary from leapp-report.txt
+  ansible.builtin.shell: |
+    awk '/Risk Factor:/ {print $0} /Title:/ {print $0}' /var/log/leapp/leapp-report.txt
+  register: leapp_report_summary
+  when: preupgrade_result.rc == 0
+
+- name: Display the Leapp report summary
+  debug:
+    var: leapp_report_summary.stdout
+  when: leapp_report_summary is defined
+
+
+
+
+

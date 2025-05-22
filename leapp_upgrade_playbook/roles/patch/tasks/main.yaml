@@ -1,0 +1,252 @@
+---
+
+# - name: Check for errors in the Magneto service logs
+#   ansible.builtin.shell: journalctl -u magneto.service | grep -i "error"
+#   register: magneto_errors
+#   ignore_errors: true
+
+# - name: Display Magneto service errors if any
+#   debug:
+#     var: magneto_errors.stdout_lines
+#   when: magneto_errors.stdout | length > 0
+
+
+# - name: Stop the Magneto service
+#   ansible.builtin.systemd:
+#     name: magneto
+#     state: stopped
+
+# - name: Remove old Magneto directory
+#   ansible.builtin.file:
+#     path: /root/magneto
+#     state: absent
+
+# - name: Clone the Magneto repository
+#   ansible.builtin.git:
+#     repo: git@github.ibm.com:privatecloud-ap/magneto.git
+#     dest: /root/magneto
+#     version: idaa_simulators_rhel8
+#     update: yes  # Ensure the repo is updated if it already exists
+
+# - name: Copy Magneto directory to all hosts
+#   ansible.builtin.synchronize:
+#     mode: push
+#     src: /root/magneto/
+#     dest: /root/magneto/
+
+# - name: Install the Magneto package
+#   ansible.builtin.command: |
+#     python setup.py develop
+#   args:
+#     chdir: /root/magneto/src
+
+
+# - name: Create symbolic link for Python 2.7
+#   ansible.builtin.file:
+#     src: /usr/bin/python2.7
+#     dest: /usr/bin/python
+#     state: link
+
+# - name: Restart the Magneto service
+#   ansible.builtin.systemd:
+#     name: magneto
+#     state: restarted
+
+# - name: Get Magneto service logs
+#   ansible.builtin.command: |
+#     journalctl -u magneto --no-pager --lines=100
+#   register: magneto_logs
+
+# - name: Check for application state READY
+#   debug:
+#     msg: "Magneto application state is READY."
+#   when: "'Application state changes to READY' in magneto_logs.stdout"
+
+# - name: Fail if application is not in READY state
+#   ansible.builtin.fail:
+#     msg: "Magneto application is not in READY state."
+#   when: "'Application state changes to READY' not in magneto_logs.stdout"
+
+# - name: Check if Magneto service is active
+#   ansible.builtin.command:
+#     cmd: systemctl is-active magneto
+#   register: magneto_active
+#   changed_when: false
+
+# - name: Verify Magneto service is running
+#   debug:
+#     msg: "Magneto service is active and running."
+#   when: magneto_active.stdout == "active"
+
+# # - name: Check for errors in the Magneto service logs
+# #   ansible.builtin.shell: journalctl -u magneto.service | grep -i "error"
+# #   register: magneto_errors
+# #   ignore_errors: true
+
+# # - name: Display Magneto service errors if any
+# #   debug:
+# #     var: magneto_errors.stdout_lines
+# #   when: magneto_errors.stdout | length > 0
+
+# - name: Execute curl command to check response
+#   ansible.builtin.shell:
+#     cmd: curl --insecure --user "root:$(cat /var/run/magneto.token)" https://localhost:5001/appliance/attributes
+#   register: curl_response
+#   ignore_errors: yes
+
+# - name: Display curl response
+#   debug:
+#     var: curl_response.stdout
+
+
+# - name: Load ip_tables module
+#   ansible.builtin.command:
+#     cmd: modprobe ip_tables
+
+# - name: Ensure ip_tables is listed in modules-load.d
+#   ansible.builtin.copy:
+#     dest: /etc/modules-load.d/iptables.conf
+#     content: "ip_tables\n"
+#     mode: '0644'
+
+# - name: Remove Docker packages
+#   ansible.builtin.package:
+#     name: docker*
+#     state: absent
+#   register: docker_status
+#   ignore_errors: yes
+
+# - name: Check Podman version
+#   ansible.builtin.shell: podman --version
+#   register: podman_version
+#   ignore_errors: yes
+
+# - name: Install Podman if not installed (for RHEL 8 only)
+#   ansible.builtin.yum:
+#     name: podman
+#     state: present
+#   when: podman_version.rc != 0
+
+# - name: Create the /usr/bin/docker script
+#   ansible.builtin.copy:
+#     dest: /usr/bin/docker
+#     content: |
+#       #!/bin/sh
+#       [ -e /etc/containers/nodocker ] || \
+#       echo "Emulate Docker CLI using podman. Create /etc/containers/nodocker to quiet msg." >&2
+#       exec podman "$@"
+#     mode: '0755'
+
+# - name: (Optional) Create /etc/containers/nodocker to suppress the message
+#   ansible.builtin.file:
+#     path: /etc/containers/nodocker
+#     state: touch
+#     mode: '0644'
+
+# - name: Check Docker version (emulated)
+#   ansible.builtin.shell: /usr/bin/docker --version
+#   register: docker_version
+
+# - name: Display Docker version output
+#   debug:
+#     var: docker_version.stdout
+
+# - name: Check Podman version again
+#   ansible.builtin.shell: podman --version
+#   register: podman_version
+
+# - name: Make DOCKER_HOST environment variable persistent
+#   ansible.builtin.copy:
+#     dest: /etc/profile.d/podman.sh
+#     content: |
+#       # Set DOCKER_HOST for Podman
+#       export DOCKER_HOST=unix:/run/podman/podman.sock
+#     mode: '0644'
+#   become: true
+
+# - name: Create containers.conf file to set pid limit to max
+#   ansible.builtin.copy:
+#     dest: /etc/containers/containers.conf
+#     content: |
+#       [containers]
+#       pids_limit = -1
+#     owner: root
+#     group: root
+#     mode: '0644'
+#   become: true
+
+
+# - name: Run transferAndExecuteScript
+#   ansible.builtin.shell:
+#     #cmd: bash -x transferAndExecuteScript.sh {{ inventory_hostname }} idaa-docker-local/idaa/driver:20241022-041913-8d1a264-ppc64le
+#     cmd: "nohup bash -x transferAndExecuteScript.sh {{ inventory_hostname }} idaa-docker-local/idaa/driver:20241129-073826-7352a7f-ppc64le > /var/log/transferAndExecuteScript_{{ inventory_hostname }}.log 2>&1 &"
+#     chdir: /root/pipeline-automation-scripts/accelerator-installation
+#   delegate_to: localhost
+
+
+# - name: Update kernel with cgroup setting
+#   ansible.builtin.shell:
+#     cmd: grubby --update-kernel=ALL --args="systemd.unified_cgroup_hierarchy=1"
+
+# - name: Trigger reboot after Leapp upgrade
+#   ansible.builtin.command: reboot
+#   async: 1
+#   poll: 0
+#   ignore_errors: yes
+
+# - name: Check cgroup configuration in Docker
+#   ansible.builtin.shell:
+#     cmd: docker info | grep -i cgroup
+#   register: docker_cgroup_info
+#   ignore_errors: yes
+
+# - name: Display Docker cgroup info
+#   ansible.builtin.debug:
+#     var: docker_cgroup_info.stdout
+
+
+# - name: Ensure /etc/subgid has correct content
+#   ansible.builtin.copy:
+#     dest: /etc/subgid
+#     content: |
+#       configuration-console:100000:65536
+#     owner: root
+#     group: root
+#     mode: '0644'
+#   become: true
+
+# - name: Ensure /etc/subuid has correct content
+#   ansible.builtin.copy:
+#     dest: /etc/subuid
+#     content: |
+#       configuration-console:100000:65536
+#     owner: root
+#     group: root
+#     mode: '0644'
+#   become: true
+
+# - name: Create or modify /usr/bin/dwa-configuration-console
+#   ansible.builtin.copy:
+#     dest: /usr/bin/dwa-configuration-console
+#     content: |
+#       #!/bin/bash
+#       CONFIGURATION_CONSOLE_PORT=1600
+#       telnet $(netstat -tnl | grep ":${CONFIGURATION_CONSOLE_PORT}" | awk '{print $4}' | sed 's/:/ /')
+#     owner: root
+#     group: root
+#     mode: '0755'
+#   become: true
+
+
+- name: Execute curl command to check response
+  ansible.builtin.shell:
+   cmd: curl --insecure --user "root:$(cat /var/run/magneto.token)" https://localhost:5001/appliance/attributes
+  register: curl_response
+  ignore_errors: yes
+
+- name: Display curl response
+  debug:
+   var: curl_response.stdout
+
+
+

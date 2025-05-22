@@ -1,0 +1,6 @@
+# Variables
+baseos_repo_url: "http://9.30.200.90:8080/packages/BaseOS"
+appstream_repo_url: "http://9.30.200.90:8080/packages/AppStream"
+leapp_iso_path: "/tmp/RHEL-8.9.0-20231030.60-ppc64le-dvd1.iso"
+repo_base_os: BaseOs
+repo_app_stream: AppStream

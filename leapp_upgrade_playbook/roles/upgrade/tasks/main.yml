@@ -1,0 +1,25 @@
+---
+
+- name: Start Leapp upgrade
+  ansible.builtin.command:
+    cmd: leapp upgrade --no-rhsm --enablerepo {{ repo_base_os }} --enablerepo {{ repo_app_stream }}
+  register: upgrade_result
+  ignore_errors: yes
+
+- name: Change network interface name from eth to env
+  ansible.builtin.shell: |
+    sed -i 's/eth/env/g' /etc/udev/rules.d/70-permanent-net.rules
+  when: "'A reboot is required to continue. Please reboot your system.' in upgrade_result.stdout"
+
+- name: Trigger reboot after Leapp upgrade
+  ansible.builtin.command:
+    cmd: reboot
+  async: 1
+  poll: 0
+  ignore_errors: true
+  when: "'A reboot is required to continue. Please reboot your system.' in upgrade_result.stdout"
+
+- name: Exit the playbook after triggering reboot
+  meta: end_play
+  when: "'A reboot is required to continue. Please reboot your system.' in upgrade_result.stdout"
+
